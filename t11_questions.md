@@ -13,8 +13,8 @@ ___
 ```
     |                 | Monday | Wednesday | Friday |
     |-----------------|--------|-----------|--------|
-    | Driver          |        |           |        |
-    | Navigator       |        |           |        |
+    | Driver          |  Pier  |           |        |
+    | Navigator       | Yoseph |           |        |
     | Quality Control |        |           |        |
 ```
 
@@ -26,7 +26,13 @@ ___
     what each one represents:
 
 ```
-    **Replace This Text With Your Response**
+    Class 1: Game
+        Establishes game logic
+    Class 2: NPC
+        
+    Class 3: Good_NPC
+    Class 4: Bad_NPC
+    Class 5: Player
 ```
 
 2.b. Look more closely at the **t11_game.py** file. There are 8 lines; identify if they are 

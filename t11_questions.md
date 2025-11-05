@@ -29,11 +29,14 @@ ___
     Class 1: Game
         Establishes game logic
     Class 2: NPC
-        
+        Initializes and sets the methods for NPCs
     Class 3: Good_NPC
+        Inherits from the NPC class to create a good npc
     Class 4: Bad_NPC
+        Inherits from the NPC class to create a bad npc
     Class 5: Player
-```
+        Initializes the player and defines how it can move
+``` 
 
 2.b. Look more closely at the **t11_game.py** file. There are 8 lines; identify if they are 
     a) instance parameters, 
@@ -41,26 +44,25 @@ ___
     c) method calls to another class
 
 ```
-    self.size = 800, 600                              # **Replace This Text With Your Response**
-    self.running = True                               # **Replace This Text With Your Response**
-    pygame.init()                                     # **Replace This Text With Your Response**
-    self.screen = pygame.display.set_mode(self.size)  # **Replace This Text With Your Response**
-    self.clock = pygame.time.Clock()                  # **Replace This Text With Your Response**
-    self.player = Player(self.size)                   # **Replace This Text With Your Response**
-    self.good_npc = NPC(self.size)                    # **Replace This Text With Your Response**
-    self.screen.fill('#9CBEBA')                       # **Replace This Text With Your Response**
+    self.size = 800, 600                              # Instance Parameters
+    self.running = True                               # Instance Parameters
+    pygame.init()                                     # Method call within the class
+    self.screen = pygame.display.set_mode(self.size)  # Method call within the class
+    self.clock = pygame.time.Clock()                  # Method call to another class
+    self.player = Player(self.size)                   # Method call within the class
+    self.good_npc = NPC(self.size)                    # Method calls to another class
+    self.screen.fill('#9CBEBA')                       # Method calls to another class
 ```
 
 2.c. Parse through the `run()` method of t11_game.py. In particular, note how the game handles 
-    a) collisions between the player and NPC,
-    b) moving the player and NPC around the screen, 
-    c) redrawing the player and NPC after they move,
-    d) how often the game updates the screen
+    a) collisions between the player and NPC: if whiskers or tacocat collide with the player, the screen prints a text saying the game ended but doesn't kill the characters.
+    b) moving the player and NPC around the screen: Tuna (the player) moves based on the key pressed, which runs in the else statement when the characters did not collide, and the following two lines move the NPCs
+    c) redrawing the player and NPC after they move: The blit method is used to draw the characters in the else clause of the loop, and the display is updated right after before the frames are refreshed.
+    d) how often the game updates the screen: The clock.tick() method is used on self to refresh 24 frames per second
 
 In your own words, describe how the four items above are accomplished in the Game class:
 
-```
-    **Replace This Text With Your Response**
+
 ```
 
 _Return to the Google Doc to continue the assignment._
@@ -73,7 +75,7 @@ _Return to the Google Doc to continue the assignment._
     How do you know?
 
 ```
-    **Replace This Text With Your Response**
+    For the player class, functionality is inherited from the Sprite class. We know this because it is passed as a parameter to the new Player class, then super(). is used
 ```
 
 3.b. Sprites need two attributes to function: A surface and a rectangle. The surface (implemented in a `Surface` 
@@ -83,20 +85,24 @@ _Return to the Google Doc to continue the assignment._
      and explain what each line does. 
 
 ```
-    **Replace This Text With Your Response**
+self.screen.blit(self.tuna.surf, self.tuna.rect): This line sets the drawing for the player (surf) and then specifies where the surface will be drawn (rect)
+self.screen.blit(self.tacocat.surf, self.tacocat.rect)
+self.screen.blit(self.whiskers.surf, self.whiskers.rect)
+
+The following two lines do the same thing, but for the NPC characters instead. 
 ```
 
 3.c. The `Player` class has only one method so far. Parse that code and docstring, and describe what it does:
 
 ```
-    **Replace This Text With Your Response**
+    It makes the player move on the screen when one of four keys is pressed. 
 ```
 
 3.d. Similarly, the `NPC` class in **t11_NPC.py** also inherits the `Sprite` class from **pygame**, 
      but it does a little more than our `Player` class. Compare the two classes, and identify/describe the differences:
 
 ```
-    **Replace This Text With Your Response**
+    The initial position for NPCs is set to 0,0, and the way that each moves is implemented differently. 
 ```
 
 3.e. Of particular interest is how we keep the `NPC` on the screen. Describe how we're using 

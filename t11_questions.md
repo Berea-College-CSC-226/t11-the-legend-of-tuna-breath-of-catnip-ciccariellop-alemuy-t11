@@ -109,7 +109,7 @@ The following two lines do the same thing, but for the NPC characters instead.
     the `self.rect` attribute in the `get_direction()` method to keep the `NPC` visible.  
 
 ```
-    **Replace This Text With Your Response**
+    
 ```
 
 _Return to the Google doc to continue the assignment._ 

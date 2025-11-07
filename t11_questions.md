@@ -13,8 +13,8 @@ ___
 ```
     |                 | Monday | Wednesday | Friday |
     |-----------------|--------|-----------|--------|
-    | Driver          |  Pier  |           |        |
-    | Navigator       | Yoseph |           |        |
+    | Driver          |  Pier  |   pier        |   Yoseph     |
+    | Navigator       | Yoseph |      Yoseph     |    Pier    |
     | Quality Control |        |           |        |
 ```
 

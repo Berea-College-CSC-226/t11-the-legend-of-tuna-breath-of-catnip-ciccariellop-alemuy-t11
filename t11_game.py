@@ -17,80 +17,133 @@
 ####################################################################################
 
 import pygame
-from t11_NPC import NPC, Good_NPC, Bad_NPC
+from t11_NPC import Good_NPC, Bad_NPC
 from t11_player import Player
+
+
+class Obstacle(pygame.sprite.Sprite):
+    """A simple rectangular obstacle that blocks movement."""
+    def __init__(self, x, y, width, height):
+        super().__init__()
+        self.surf = pygame.Surface((width, height))
+        self.surf.fill((139, 69, 19))  # brown color
+        self.rect = self.surf.get_rect(topleft=(x, y))
 
 
 class Game:
     def __init__(self):
-        """
-        Game class for handling the game logic.
-        """
+        """Game class for handling the game logic."""
         self.size = 800, 600
         self.running = True
+        self.game_over = False
+        self.message = ""  # store text when collision happens
+
         pygame.init()
         self.screen = pygame.display.set_mode(self.size)
         self.screen.fill('#9CBEBA')
-
         self.clock = pygame.time.Clock()
         self.tuna = Player(self.size)
         self.tacocat = Good_NPC(self.size)
         self.whiskers = Bad_NPC(self.size)
-        self.obstacle = pygame.Rect(200,200,100,80)
 
-
+        # Create one obstacle in the bottom-left
+        self.obstacle = Obstacle(50, self.size[1] - 100, 150, 80)
 
     def run(self):
-        """
-        Runs the game forever
-
-        :return: None
-        """
-
+        """Runs the game loop."""
         while self.running:
-
-            # Handle game ending first
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.running = False
+                elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                    self.running = False
 
-            # Handle user and game events next
-            if pygame.sprite.spritecollide(self.tuna, [self.tacocat], False):
-                # Prints the game ending text to the screen
-                font = pygame.font.SysFont("ComicSans", 36)
-                txt = font.render('You caught me!', True, "darkblue")
-                self.screen.blit(txt, (self.size[0]//2, self.size[1]-100))
-            elif pygame.sprite.spritecollide(self.tuna, [self.whiskers], False):
-                # Prints the game ending text to the screen
-                font = pygame.font.SysFont("ComicSans", 36)
-                txt = font.render('Oh no! Caught by Whiskers :(', True, "darkblue")
-                self.screen.blit(txt, (self.size[0]//2, self.size[1]-100))
-            # elif pygame.Rect.colliderect(obstacle):
-            #     font = pygame.font.SysFont("ComicSans", 36)
-            #     txt = font.render('Oh no! You hit the obstacle :(', True, "darkblue")
-            #     self.screen.blit(txt, (self.size[0] // 2, self.size[1] - 100))
-            else:
-                # Keep playing
-                self.tuna.movement(pygame.key.get_pressed())
+            keys = pygame.key.get_pressed()
+
+            if not self.game_over:
+                # Save old positions
+                old_tuna = self.tuna.rect.copy()
+                old_taco = self.tacocat.rect.copy()
+                old_whisk = self.whiskers.rect.copy()
+
+                # Move characters
+                self.tuna.movement(keys)
                 self.tacocat.movement()
                 self.whiskers.movement()
-                self.screen.fill('#9CBEBA')
-                pygame.draw.rect(self.obstacle)
-                self.screen.blit(self.tuna.surf, self.tuna.rect)
-                self.screen.blit(self.tacocat.surf, self.tacocat.rect)
-                self.screen.blit(self.whiskers.surf, self.whiskers.rect)
+
+                # Player: simple block (revert)
+                if self.tuna.rect.colliderect(self.obstacle.rect):
+                    self.tuna.rect = old_tuna
+
+                # Tacocat: revert, invert direction, nudge out so it doesn't stick
+                if self.tacocat.rect.colliderect(self.obstacle.rect):
+                    self.tacocat.rect = old_taco
+                    if hasattr(self.tacocat, "direction"):
+                        # invert direction
+                        try:
+                            self.tacocat.direction.x *= -1
+                            self.tacocat.direction.y *= -1
+                            # nudge one step (if numeric components)
+                            self._nudge_sprite(self.tacocat, 6)
+                        except Exception:
+                            pass
+
+                # Whiskers: revert, invert direction, nudge out so it doesn't stick
+                if self.whiskers.rect.colliderect(self.obstacle.rect):
+                    self.whiskers.rect = old_whisk
+                    if hasattr(self.whiskers, "direction"):
+                        try:
+                            self.whiskers.direction.x *= -1
+                            self.whiskers.direction.y *= -1
+                            self._nudge_sprite(self.whiskers, 6)
+                        except Exception:
+                            pass
+
+                # Check win/lose
+                if pygame.sprite.spritecollide(self.tuna, [self.tacocat], False):
+                    self.message = 'You caught me!'
+                    self.game_over = True
+                elif pygame.sprite.spritecollide(self.tuna, [self.whiskers], False):
+                    self.message = 'Oh no! Caught by Whiskers :('
+                    self.game_over = True
+
+            # Draw everything
+            self.screen.fill('#9CBEBA')
+            self.screen.blit(self.tuna.surf, self.tuna.rect)
+            self.screen.blit(self.tacocat.surf, self.tacocat.rect)
+            self.screen.blit(self.whiskers.surf, self.whiskers.rect)
+            self.screen.blit(self.obstacle.surf, self.obstacle.rect)
+
+            # Show message if game is over (keeps shown)
+            if self.game_over and self.message:
+                font = pygame.font.SysFont("ComicSans", 36)
+                txt = font.render(self.message, True, "darkblue")
+                text_rect = txt.get_rect(center=(self.size[0] // 2, self.size[1] // 2))
+                self.screen.blit(txt, text_rect)
+
             pygame.display.update()
             self.clock.tick(24)
 
         pygame.quit()
 
+    def _nudge_sprite(self, sprite, amount):
+        """
+        Move sprite a small amount along its (new) direction vector to avoid sticking.
+        Works if sprite.direction has numeric x and y components.
+        """
+        dx = getattr(sprite.direction, "x", 0)
+        dy = getattr(sprite.direction, "y", 0)
+        try:
+            # normalize small movement if direction is larger than 1
+            sprite.rect.x += int(dx * amount)
+            sprite.rect.y += int(dy * amount)
+        except Exception:
+            # fallback: do nothing
+            pass
+
 
 def main():
-    """
-    Starts the cat game.
-
-    :return: None
-    """
+    """Starts the cat game."""
     game = Game()
     game.run()
 

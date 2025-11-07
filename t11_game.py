@@ -31,10 +31,13 @@ class Game:
         pygame.init()
         self.screen = pygame.display.set_mode(self.size)
         self.screen.fill('#9CBEBA')
+
         self.clock = pygame.time.Clock()
         self.tuna = Player(self.size)
         self.tacocat = Good_NPC(self.size)
         self.whiskers = Bad_NPC(self.size)
+        self.obstacle = pygame.Rect(200,200,100,80)
+
 
 
     def run(self):
@@ -43,7 +46,9 @@ class Game:
 
         :return: None
         """
+
         while self.running:
+
             # Handle game ending first
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -60,12 +65,17 @@ class Game:
                 font = pygame.font.SysFont("ComicSans", 36)
                 txt = font.render('Oh no! Caught by Whiskers :(', True, "darkblue")
                 self.screen.blit(txt, (self.size[0]//2, self.size[1]-100))
+            # elif pygame.Rect.colliderect(obstacle):
+            #     font = pygame.font.SysFont("ComicSans", 36)
+            #     txt = font.render('Oh no! You hit the obstacle :(', True, "darkblue")
+            #     self.screen.blit(txt, (self.size[0] // 2, self.size[1] - 100))
             else:
-                # Keep playing!
+                # Keep playing
                 self.tuna.movement(pygame.key.get_pressed())
                 self.tacocat.movement()
                 self.whiskers.movement()
                 self.screen.fill('#9CBEBA')
+                pygame.draw.rect(self.obstacle)
                 self.screen.blit(self.tuna.surf, self.tuna.rect)
                 self.screen.blit(self.tacocat.surf, self.tacocat.rect)
                 self.screen.blit(self.whiskers.surf, self.whiskers.rect)

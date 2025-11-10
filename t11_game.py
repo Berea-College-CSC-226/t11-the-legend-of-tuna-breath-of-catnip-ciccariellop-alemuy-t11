@@ -17,12 +17,13 @@
 ####################################################################################
 
 import pygame
+import time
 from t11_NPC import Good_NPC, Bad_NPC
 from t11_player import Player
 
 
 class Obstacle(pygame.sprite.Sprite):
-    """A simple rectangular obstacle that blocks movement."""
+    """A simple rectangular obstacle that blocks character movement."""
     def __init__(self, x, y, width, height):
         super().__init__()
         self.surf = pygame.Surface((width, height))
@@ -31,119 +32,147 @@ class Obstacle(pygame.sprite.Sprite):
 
 
 class Game:
+    """Main game controller: handles logic, rendering, and events."""
     def __init__(self):
-        """Game class for handling the game logic."""
-        self.size = 800, 600
+        pygame.init()
+
+        # Window setup
+        self.size = (800, 600)
+        self.screen = pygame.display.set_mode(self.size)
+        pygame.display.set_caption("The Legend of Tuna: Breath of Catnip")
+        self.clock = pygame.time.Clock()
+
+        # Game state
         self.running = True
         self.game_over = False
-        self.message = ""  # store text when collision happens
+        self.message = ""
+        self.bg_color = "#9CBEBA"
 
-        pygame.init()
-        self.screen = pygame.display.set_mode(self.size)
-        self.screen.fill('#9CBEBA')
-        self.clock = pygame.time.Clock()
+        # Player and NPCs
         self.tuna = Player(self.size)
         self.tacocat = Good_NPC(self.size)
         self.whiskers = Bad_NPC(self.size)
 
-        # Create one obstacle in the bottom-left
+        # Static obstacle
         self.obstacle = Obstacle(50, self.size[1] - 100, 150, 80)
 
-    def run(self):
-        """Runs the game loop."""
-        while self.running:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    self.running = False
-                elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                    self.running = False
+        # Timer setup (3 minutes)
+        self.start_time = time.time()
+        self.time_limit = 180  # seconds
 
-            keys = pygame.key.get_pressed()
+    def run(self):
+        """Main game loop."""
+        while self.running:
+            self._handle_events()
 
             if not self.game_over:
-                # Save old positions
-                old_tuna = self.tuna.rect.copy()
-                old_taco = self.tacocat.rect.copy()
-                old_whisk = self.whiskers.rect.copy()
+                self._update_game_logic()
 
-                # Move characters
-                self.tuna.movement(keys)
-                self.tacocat.movement()
-                self.whiskers.movement()
-
-                # Player: simple block (revert)
-                if self.tuna.rect.colliderect(self.obstacle.rect):
-                    self.tuna.rect = old_tuna
-
-                # Tacocat: revert, invert direction, nudge out so it doesn't stick
-                if self.tacocat.rect.colliderect(self.obstacle.rect):
-                    self.tacocat.rect = old_taco
-                    if hasattr(self.tacocat, "direction"):
-                        # invert direction
-                        try:
-                            self.tacocat.direction.x *= -1
-                            self.tacocat.direction.y *= -1
-                            # nudge one step (if numeric components)
-                            self._nudge_sprite(self.tacocat, 6)
-                        except Exception:
-                            pass
-
-                # Whiskers: revert, invert direction, nudge out so it doesn't stick
-                if self.whiskers.rect.colliderect(self.obstacle.rect):
-                    self.whiskers.rect = old_whisk
-                    if hasattr(self.whiskers, "direction"):
-                        try:
-                            self.whiskers.direction.x *= -1
-                            self.whiskers.direction.y *= -1
-                            self._nudge_sprite(self.whiskers, 6)
-                        except Exception:
-                            pass
-
-                # Check win/lose
-                if pygame.sprite.spritecollide(self.tuna, [self.tacocat], False):
-                    self.message = 'You caught me!'
-                    self.game_over = True
-                elif pygame.sprite.spritecollide(self.tuna, [self.whiskers], False):
-                    self.message = 'Oh no! Caught by Whiskers :('
-                    self.game_over = True
-
-            # Draw everything
-            self.screen.fill('#9CBEBA')
-            self.screen.blit(self.tuna.surf, self.tuna.rect)
-            self.screen.blit(self.tacocat.surf, self.tacocat.rect)
-            self.screen.blit(self.whiskers.surf, self.whiskers.rect)
-            self.screen.blit(self.obstacle.surf, self.obstacle.rect)
-
-            # Show message if game is over (keeps shown)
-            if self.game_over and self.message:
-                font = pygame.font.SysFont("ComicSans", 36)
-                txt = font.render(self.message, True, "darkblue")
-                text_rect = txt.get_rect(center=(self.size[0] // 2, self.size[1] // 2))
-                self.screen.blit(txt, text_rect)
-
+            self._draw_screen()
             pygame.display.update()
             self.clock.tick(24)
 
         pygame.quit()
 
+    # ------------------------- Core Logic -------------------------
+
+    def _handle_events(self):
+        """Handle user and system events."""
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                self.running = False
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                self.running = False
+
+    def _update_game_logic(self):
+        """Update positions, detect collisions, and manage time."""
+        keys = pygame.key.get_pressed()
+
+        # Save previous positions
+        old_tuna = self.tuna.rect.copy()
+        old_taco = self.tacocat.rect.copy()
+        old_whisk = self.whiskers.rect.copy()
+
+        # Move characters
+        self.tuna.movement(keys)
+        self.tacocat.movement()
+        self.whiskers.movement()
+
+        # Handle collisions with obstacle
+        self._handle_obstacle_collision(self.tuna, old_tuna)
+        self._handle_obstacle_collision(self.tacocat, old_taco, npc=True)
+        self._handle_obstacle_collision(self.whiskers, old_whisk, npc=True)
+
+        # Timer logic
+        elapsed = time.time() - self.start_time
+        if elapsed >= self.time_limit:
+            self.message = "Time is up! You ran out of time."
+            self.game_over = True
+            return
+
+        # Win/Lose conditions
+        if pygame.sprite.spritecollide(self.tuna, [self.tacocat], False):
+            self.message = "You found Tacocat. Nice work!"
+            self.game_over = True
+        elif pygame.sprite.spritecollide(self.tuna, [self.whiskers], False):
+            self.message = "Whiskers caught you. Game over."
+            self.game_over = True
+
+    def _handle_obstacle_collision(self, sprite, old_rect, npc=False):
+        """Revert or adjust movement if an obstacle collision occurs."""
+        if sprite.rect.colliderect(self.obstacle.rect):
+            sprite.rect = old_rect
+            if npc and hasattr(sprite, "direction"):
+                try:
+                    sprite.direction.x *= -1
+                    sprite.direction.y *= -1
+                    self._nudge_sprite(sprite, 6)
+                except Exception:
+                    pass
+
+    def _draw_screen(self):
+        """Draw all sprites, timer, and any messages."""
+        self.screen.fill(self.bg_color)
+        self.screen.blit(self.tuna.surf, self.tuna.rect)
+        self.screen.blit(self.tacocat.surf, self.tacocat.rect)
+        self.screen.blit(self.whiskers.surf, self.whiskers.rect)
+        self.screen.blit(self.obstacle.surf, self.obstacle.rect)
+
+        # Draw countdown timer
+        remaining = max(0, self.time_limit - int(time.time() - self.start_time))
+        minutes = remaining // 60
+        seconds = remaining % 60
+        timer_font = pygame.font.SysFont("Consolas", 28, bold=True)
+        timer_text = "Time Left: {:02d}:{:02d}".format(minutes, seconds)
+        timer_surface = timer_font.render(timer_text, True, "black")
+        self.screen.blit(timer_surface, (15, 10))
+
+        # Display message after game over
+        if self.game_over and self.message:
+            font = pygame.font.SysFont("ComicSansMS", 38, bold=True)
+            txt = font.render(self.message, True, "navy")
+            text_rect = txt.get_rect(center=(self.size[0] // 2, self.size[1] // 2))
+            self.screen.blit(txt, text_rect)
+
+            sub_font = pygame.font.SysFont("ComicSansMS", 26)
+            note_text = "(Press ESC or close the window to exit.)"
+            note = sub_font.render(note_text, True, "darkred")
+            note_rect = note.get_rect(center=(self.size[0] // 2, self.size[1] // 2 + 50))
+            self.screen.blit(note, note_rect)
+
     def _nudge_sprite(self, sprite, amount):
-        """
-        Move sprite a small amount along its (new) direction vector to avoid sticking.
-        Works if sprite.direction has numeric x and y components.
-        """
+        """Move a sprite slightly along its direction vector to prevent sticking."""
         dx = getattr(sprite.direction, "x", 0)
         dy = getattr(sprite.direction, "y", 0)
         try:
-            # normalize small movement if direction is larger than 1
             sprite.rect.x += int(dx * amount)
             sprite.rect.y += int(dy * amount)
         except Exception:
-            # fallback: do nothing
             pass
 
 
 def main():
-    """Starts the cat game."""
+    """Start the cat adventure game."""
     game = Game()
     game.run()
 
